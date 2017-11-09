@@ -5,6 +5,7 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
 import Numeric
 
+-- Primitive/basic types
 data LispVal = Atom String
              | List [LispVal]
              | DottedList [LispVal] LispVal
@@ -14,7 +15,16 @@ data LispVal = Atom String
              | Character Char
              | Float Float
 
+instance Show LispVal where
+    show (Atom name) = name
+    show (String contents) = "\"" ++ contents ++ "\""
+    show (Number num) = show num
+    show (Bool True) = "True"
+    show (Bool False) = "False"
+    show (Character c) = "'" ++ [c] ++ "'"
+    show (Float f) = show f
 
+-- Parsers/parser actions for LispVal
 parseChar :: Parser LispVal
 parseChar = do
                 try $ string "#\\"
@@ -35,14 +45,6 @@ parseString = do
             char '"'
             return $ String (concat x)
 
-
-parseAtom :: Parser LispVal
-parseAtom = do
-                first <- letter <|> symbol
-                rest <- many (letter <|> digit <|> symbol)
-                let atom = [first] ++ rest
-                return $ Atom atom
-
 escapeChars :: Parser String
 escapeChars = do
                 char '\\'
@@ -52,6 +54,13 @@ escapeChars = do
                     't' -> do return "\t"
                     'n' -> do return "\n"
                     'r' -> do return "\r"
+
+parseAtom :: Parser LispVal
+parseAtom = do
+                first <- letter <|> symbol
+                rest <- many (letter <|> digit <|> symbol)
+                let atom = [first] ++ rest
+                return $ Atom atom
 
 parseNumber :: Parser LispVal
 parseNumber = do
@@ -121,19 +130,7 @@ parseExpr = parseAtom
 symbol :: Parser Char
 symbol = oneOf "!$%&|*+-/:<=?>@^_~"
 
-spaces :: Parser ()
-spaces = skipMany1 space
-
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
     Left err -> "No match found. " ++ show err
     Right val -> "Value = " ++ show val
-
-instance Show LispVal where
-    show (Atom name) = name
-    show (String contents) = "\"" ++ contents ++ "\""
-    show (Number num) = show num
-    show (Bool True) = "True"
-    show (Bool False) = "False"
-    show (Character c) = "'" ++ [c] ++ "'"
-    show (Float f) = show f
