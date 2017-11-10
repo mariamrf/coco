@@ -1,20 +1,20 @@
-module LispValLib where
+module ValueLib where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
 import Numeric
 
 -- Primitive/basic types
-data LispVal = Atom String
-             | List [LispVal]
-             | DottedList [LispVal] LispVal
+data Value = Atom String
+             | List [Value]
+             | DottedList [Value] Value
              | Number Integer
              | String String
              | Bool Bool
              | Character Char
              | Float Float
 
-instance Show LispVal where
+instance Show Value where
     show (Atom name) = name ++ " (atom)"
     show (String contents) = "\"" ++ contents ++ "\"" ++ " (string)"
     show (Number num) = show num ++ " (number)"
@@ -23,8 +23,8 @@ instance Show LispVal where
     show (Character c) = "'" ++ [c] ++ "'"
     show (Float f) = show f ++ " (float)"
 
--- Parsers/parser actions for LispVal
-parseChar :: Parser LispVal
+-- Parsers/parser actions for Value
+parseChar :: Parser Value
 parseChar = do
                 try $ string "#\\"
                 x <- parseCharName <|> anyChar
@@ -37,7 +37,7 @@ parseCharName = do -- here "space" and "newline" are lowercase only even tho sta
                         "space" -> do return ' '
                         "newline" -> do return '\n'
 
-parseString :: Parser LispVal
+parseString :: Parser Value
 parseString = do
             char '"'
             x <- many $ many1 (noneOf "\"\\") <|> escapeChars
@@ -54,49 +54,49 @@ escapeChars = do
                     'n' -> do return "\n"
                     'r' -> do return "\r"
 
-parseAtom :: Parser LispVal
+parseAtom :: Parser Value
 parseAtom = do
                 first <- letter <|> symbol
                 rest <- many (letter <|> digit <|> symbol)
                 let atom = [first] ++ rest
                 return $ Atom atom
 
-parseNumber :: Parser LispVal
+parseNumber :: Parser Value
 parseNumber = do
                 num <- parseNeg <|> parseDec <|> parseDec2 <|> parseHex <|> parseOct <|> parseBin
                 return $ num
 
-parseDec :: Parser LispVal
+parseDec :: Parser Value
 parseDec = many1 digit >>= return . Number . read
 
-parseNeg :: Parser LispVal
+parseNeg :: Parser Value
 parseNeg = do
             try $ char '-'
             x <- many1 digit
             let num = (read x) * (-1)
             return $ Number num
 
-parseDec2 :: Parser LispVal
+parseDec2 :: Parser Value
 parseDec2 = do
                 try $ string "#d"
                 x <- many1 digit
                 return $ Number (read x)
 
-parseHex :: Parser LispVal
+parseHex :: Parser Value
 parseHex = do
                 try $ string "#x"
                 x <- many1 hexDigit
                 let dec = fst $ readHex x !! 0
                 return $ Number dec
 
-parseOct :: Parser LispVal
+parseOct :: Parser Value
 parseOct = do
                 try $ string "#o"
                 x <- many1 octDigit
                 let dec = fst $ readOct x !! 0
                 return $ Number dec
 
-parseBin :: Parser LispVal
+parseBin :: Parser Value
 parseBin = do
                 try $ string "#b"
                 x <- many1 (oneOf "01")
@@ -107,7 +107,7 @@ bin2dec = bin2dec' 0
 bin2dec' x "" = x
 bin2dec' x (y:ys) = let old = 2 * x + (if y == '0' then 0 else 1) in bin2dec' old ys
 
-parseBool :: Parser LispVal
+parseBool :: Parser Value
 parseBool = do
                 char '#'
                 x <- oneOf "tf"
@@ -115,12 +115,12 @@ parseBool = do
                     't' -> Bool True
                     'f' -> Bool False
 
-parseFloat :: Parser LispVal
+parseFloat :: Parser Value
 parseFloat = do
                 num <- parseFloatPos <|> parseFloatNeg
                 return $ num
 
-parseFloatPos :: Parser LispVal
+parseFloatPos :: Parser Value
 parseFloatPos = do
                 first <- many1 digit
                 char '.'
@@ -136,7 +136,6 @@ parseFloatNeg = do
                 let num = (-1) * (fst $ readFloat (first ++ "." ++ last) !! 0)
                 return $ Float num
 -- todo: add/reshape parsers to represent full numeric tower (R5RS)
-
 
 symbol :: Parser Char
 symbol = oneOf "!$%&|*+-/:<=?>@^_~"

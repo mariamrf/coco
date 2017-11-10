@@ -1,8 +1,8 @@
 module Lib where
-import LispValLib
+import ValueLib
 import Text.ParserCombinators.Parsec hiding (spaces)
 
-parseExpr :: Parser LispVal
+parseExpr :: Parser Value
 parseExpr = try parseFloat
             <|> try parseNumber
             <|> try parseAtom
