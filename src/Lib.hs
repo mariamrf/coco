@@ -16,13 +16,13 @@ data LispVal = Atom String
              | Float Float
 
 instance Show LispVal where
-    show (Atom name) = name
-    show (String contents) = "\"" ++ contents ++ "\""
-    show (Number num) = show num
+    show (Atom name) = name ++ " (atom)"
+    show (String contents) = "\"" ++ contents ++ "\"" ++ " (string)"
+    show (Number num) = show num ++ " (number)"
     show (Bool True) = "True"
     show (Bool False) = "False"
     show (Character c) = "'" ++ [c] ++ "'"
-    show (Float f) = show f
+    show (Float f) = show f ++ " (float)"
 
 -- Parsers/parser actions for LispVal
 parseChar :: Parser LispVal
@@ -64,11 +64,18 @@ parseAtom = do
 
 parseNumber :: Parser LispVal
 parseNumber = do
-                num <- parseDec <|> parseDec2 <|> parseHex <|> parseOct <|> parseBin
+                num <- parseNeg <|> parseDec <|> parseDec2 <|> parseHex <|> parseOct <|> parseBin
                 return $ num
 
 parseDec :: Parser LispVal
 parseDec = many1 digit >>= return . Number . read
+
+parseNeg :: Parser LispVal
+parseNeg = do
+            try $ char '-'
+            x <- many1 digit
+            let num = (read x) * (-1)
+            return $ Number num
 
 parseDec2 :: Parser LispVal
 parseDec2 = do
@@ -111,19 +118,32 @@ parseBool = do
 
 parseFloat :: Parser LispVal
 parseFloat = do
+                num <- parseFloatPos <|> parseFloatNeg
+                return $ num
+
+parseFloatPos :: Parser LispVal
+parseFloatPos = do
                 first <- many1 digit
                 char '.'
                 last <- many1 digit
                 let num = fst $ readFloat (first ++ "." ++ last) !! 0
                 return $ Float num
+
+parseFloatNeg = do
+                char '-'
+                first <- many1 digit
+                char '.'
+                last <- many1 digit
+                let num = (-1) * (fst $ readFloat (first ++ "." ++ last) !! 0)
+                return $ Float num
 -- todo: add/reshape parsers to represent full numeric tower (R5RS)
 
 
 parseExpr :: Parser LispVal
-parseExpr = parseAtom
-            <|> parseString
-            <|> try parseFloat
+parseExpr = try parseFloat
             <|> try parseNumber
+            <|> try parseAtom
+            <|> parseString
             <|> try parseBool
             <|> try parseChar
 
