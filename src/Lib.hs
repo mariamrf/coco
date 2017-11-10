@@ -138,7 +138,6 @@ parseFloatNeg = do
                 return $ Float num
 -- todo: add/reshape parsers to represent full numeric tower (R5RS)
 
-
 parseExpr :: Parser LispVal
 parseExpr = try parseFloat
             <|> try parseNumber
@@ -150,6 +149,7 @@ parseExpr = try parseFloat
 symbol :: Parser Char
 symbol = oneOf "!$%&|*+-/:<=?>@^_~"
 
+-- Exposed functions
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
     Left err -> "No match found. " ++ show err
