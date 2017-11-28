@@ -1,5 +1,4 @@
 module ValueLib where
-
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
 import Numeric
@@ -22,6 +21,18 @@ instance Show Value where
     show (Bool False) = "False"
     show (Character c) = "'" ++ [c] ++ "'"
     show (Float f) = show f ++ " (float)"
+    show (List ls) = show ls ++ " (list)"
+    show (DottedList xs x) = show xs ++ " . " ++ show x ++ " (dotted list)" 
+
+parseExpr :: Parser Value
+parseExpr = try parseFloat
+            <|> try parseNumber
+            <|> try parseAtom
+            <|> parseString
+            <|> try parseBool
+            <|> try parseChar
+            <|> parseQuoted
+            <|> parseGenList
 
 -- Parsers/parser actions for Value
 parseChar :: Parser Value
@@ -139,3 +150,28 @@ parseFloatNeg = do
 
 symbol :: Parser Char
 symbol = oneOf "!$%&|*+-/:<=?>@^_~"
+
+spaces :: Parser ()
+spaces = skipMany1 space
+
+parseGenList :: Parser Value
+parseGenList = do
+                char '('
+                x <- (try parseList) <|> parseDottedList
+                char ')'
+                return x
+
+parseList :: Parser Value
+parseList = liftM List $ sepBy parseExpr spaces
+
+parseDottedList :: Parser Value
+parseDottedList = do
+                    head <- endBy parseExpr spaces
+                    tail <- char '.' >> spaces >> parseExpr
+                    return $ DottedList head tail
+
+parseQuoted :: Parser Value
+parseQuoted = do
+                char '\''
+                x <- parseExpr
+                return $ List [Atom "quote", x]
