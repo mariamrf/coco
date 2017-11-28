@@ -19,7 +19,7 @@ instance Show Value where
     show (Number num) = show num ++ " (number)"
     show (Bool True) = "#t (boolean)"
     show (Bool False) = "#f (boolean)"
-    show (Character c) = "'" ++ [c] ++ "'"
+    show (Character c) = "'" ++ [c] ++ "' (character)"
     show (Float f) = show f ++ " (float)"
     show (List ls) = show ls ++ " (list)"
     show (DottedList xs x) = show xs ++ " . " ++ show x ++ " (dotted list)" 
