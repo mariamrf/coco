@@ -1,6 +1,7 @@
 module ValueLib where
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
+import Control.Monad.Except
 import Numeric
 
 -- Primitive/basic types
@@ -13,6 +14,14 @@ data Value = Atom String
              | Character Char
              | Float Float
 
+data SchemeError = NumArgs Integer [Value]
+                   | TypeMismatch String Value
+                   | Parser ParseError
+                   | BadSpecialForm String Value
+                   | NotFunction String
+                   | UnboundVar String String
+                   | Default String 
+
 instance Show Value where
     show (Atom name) = name ++ " (atom)"
     show (String contents) = "\"" ++ contents ++ "\"" ++ " (string)"
@@ -23,6 +32,17 @@ instance Show Value where
     show (Float f) = show f ++ " (float)"
     show (List ls) = show ls ++ " (list)"
     show (DottedList xs x) = show xs ++ " . " ++ show x ++ " (dotted list)" 
+
+instance Show SchemeError where
+    show (NumArgs expected found) = "Expected " ++ show expected ++ " args. Found values: " ++ show found
+    show (TypeMismatch expected found) = "Invalid type. Expected: " ++ expected ++ " but found: " ++ show found
+    show (Parser parse_error) = "Parse error at: " ++ show parse_error
+    show (BadSpecialForm message form) = message ++ ": " ++ show form
+    show (NotFunction func) = show func ++ " is not a function."
+    show (UnboundVar message var) = message ++ ": " ++ show var
+    show (Default message) = message
+
+type ThrowsError = Either SchemeError
 
 parseExpr :: Parser Value
 parseExpr = try parseFloat

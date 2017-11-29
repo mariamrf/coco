@@ -2,21 +2,26 @@ module Lib where
 import ValueLib
 import Eval
 import Text.ParserCombinators.Parsec hiding (spaces)
+import Control.Monad.Except
 
 -- Exposed functions
-readExpr :: String -> Value
+readExpr :: String -> ThrowsError Value
 readExpr input = case parse parseExpr "lisp" input of
-    Left err -> String $ "No match found. " ++ show err
-    Right val -> val
+    Left err -> throwError $ Parser err
+    Right val -> return val
 
-eval :: Value -> Value
-eval val@(String _) = val
-eval val@(Number _) = val
-eval val@(Float _) = val
-eval val@(Bool _) = val
-eval val@(Character _) = val
-eval val@(Atom _) = val
-eval (List [Atom "quote", val]) = val
-eval (List [Atom func, arg]) = apply_single func $ eval arg
-eval (List (Atom func : args)) = apply func $ map eval args
-eval x = String $ show x
+eval :: Value -> ThrowsError Value
+eval val@(String _) = return val
+eval val@(Number _) = return val
+eval val@(Float _) = return val
+eval val@(Bool _) = return val
+eval val@(Character _) = return val
+eval val@(Atom _) = return val
+eval (List [Atom "quote", val]) = return val
+eval (List (Atom func : args)) = mapM eval args >>= apply func
+eval badForm = throwError $ BadSpecialForm "Unrecognized special form " badForm
+
+trapError action = catchError action (return . show)
+
+extractValue :: ThrowsError a -> a
+extractValue (Right val) = val
