@@ -1,5 +1,5 @@
 # coco
-A simple Scheme interpreter, created as a Haskell exercise project. It implements a subset of [R5RS](http://schemers.org/Documents/Standards/R5RS/HTML/) for now.
+A simple Scheme interpreter, created as a Haskell exercise project. It only implements a subset of [R5RS](http://schemers.org/Documents/Standards/R5RS/HTML/) for now. Needs proper testing still as well.
 
 ## Install
 1. Prerequisites: [Stack](https://docs.haskellstack.org/en/stable/README/).
