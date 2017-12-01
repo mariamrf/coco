@@ -1,15 +1,16 @@
 module Lib where
 import REPL
+import ValueLib (Env)
 
 -- Exposed functions
 evalAndPrint :: Env -> String -> IO ()
 evalAndPrint env expr = evalString env expr >>= putStrLn
 
 runOne :: String -> IO ()
-runOne expr = nullEnv >>= flip evalAndPrint expr
+runOne expr = primitiveBindings >>= flip evalAndPrint expr
 
 runRepl :: IO ()
-runRepl = nullEnv >>= until_ exit (readPrompt "coco~>>> ") . evalAndPrint
+runRepl = primitiveBindings >>= until_ exit (readPrompt "coco~>>> ") . evalAndPrint
 
 intro next = do   
                 putStrLn "    ___       ___       ___       ___   "

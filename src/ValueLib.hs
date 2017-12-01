@@ -2,6 +2,7 @@ module ValueLib where
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
 import Control.Monad.Except
+import Data.IORef
 import Numeric
 
 -- Primitive/basic types
@@ -13,6 +14,8 @@ data Value = Atom String
              | Bool Bool
              | Character Char
              | Float Float
+             | PrimitiveFunc ([Value] -> ThrowsError Value)
+             | Func {params :: [String], vararg :: (Maybe String), body :: [Value], closure :: Env}
 
 data SchemeError = NumArgs Integer [Value]
                    | TypeMismatch String Value
@@ -30,9 +33,12 @@ instance Show Value where
     show (Bool False) = "#f"
     show (Character c) = "#\\" ++ [c]
     show (Float f) = show f
-    show (List []) = "()"
     show (List ls) = "(" ++ (showValueList ls) ++ ")"
     show (DottedList xs x) = "(" ++ (showValueList xs) ++ " . " ++ show x ++ ")"
+    show (PrimitiveFunc _) = "<primitive>"
+    show (Func {params=args, vararg=varargs, body=body, closure=env}) = "(lambda (" ++ (showWords (map show args)) ++ (case varargs of
+                                                                                                                        Nothing -> ""
+                                                                                                                        Just arg -> " . " ++ arg) ++ ") ...)"
 
 instance Show SchemeError where
     show (NumArgs expected found) = "Expected " ++ show expected ++ " args. Found values: " ++ show found
@@ -44,9 +50,64 @@ instance Show SchemeError where
     show (Default message) = message
 
 type ThrowsError = Either SchemeError
+type Env = IORef [(String, IORef Value)]
+type IOThrowsError = ExceptT SchemeError IO
+
+trapError action = catchError action (return . show)
+
+extractValue :: ThrowsError a -> a
+extractValue (Right val) = val
+
+liftThrows :: ThrowsError a -> IOThrowsError a
+liftThrows (Left err) = throwError err
+liftThrows (Right val) = return val
+
+runIOThrows :: IOThrowsError String -> IO String
+runIOThrows action = runExceptT (trapError action) >>= return . extractValue
 
 showValueList :: [Value] -> String
-showValueList xs = foldl1 (\y ys -> y ++ " " ++ ys) $ map (\x -> show x) xs
+showValueList xs = showWords $ map (\x -> show x) xs
+
+showWords :: [String] -> String
+showWords [] = ""
+showWords xs = foldl1 (\y ys -> y ++ " " ++ ys) xs
+
+isBound :: Env -> String -> IO Bool
+isBound envRef var = readIORef envRef >>= return . maybe False (const True) . lookup var
+
+getVar :: Env -> String -> IOThrowsError Value
+getVar envRef var = do
+                      env <- liftIO $ readIORef envRef
+                      maybe (throwError $ UnboundVar "Getting an unbound variable" var)
+                            (liftIO . readIORef)
+                            (lookup var env)
+
+setVar :: Env -> String -> Value -> IOThrowsError Value
+setVar envRef var val = do
+                          env <- liftIO $ readIORef envRef
+                          maybe (throwError $ UnboundVar "Setting an unbound variable" var)
+                                (liftIO . (flip writeIORef val))
+                                (lookup var env)
+                          return val
+
+defineVar :: Env -> String -> Value -> IOThrowsError Value
+defineVar envRef var val = do
+                             alreadyDefined <- liftIO $ isBound envRef var
+                             if alreadyDefined
+                                then setVar envRef var val >> return val
+                                else liftIO $ do
+                                    valueRef <- newIORef val
+                                    env <- readIORef envRef
+                                    writeIORef envRef ((var, valueRef) : env)
+                                    return val
+
+bindVars :: Env -> [(String, Value)] -> IO Env
+bindVars envRef bindings = readIORef envRef >>= extendEnv bindings >>= newIORef
+                            where
+                                extendEnv bindings env = liftM (++ env) (mapM addBinding bindings)
+                                addBinding (var, val) = do
+                                                           ref <- newIORef val
+                                                           return (var, ref)
 
 parseExpr :: Parser Value
 parseExpr = try parseFloat
