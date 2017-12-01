@@ -23,15 +23,16 @@ data SchemeError = NumArgs Integer [Value]
                    | Default String 
 
 instance Show Value where
-    show (Atom name) = name ++ " (atom)"
-    show (String contents) = "\"" ++ contents ++ "\"" ++ " (string)"
-    show (Number num) = show num ++ " (number)"
-    show (Bool True) = "#t (boolean)"
-    show (Bool False) = "#f (boolean)"
-    show (Character c) = "'" ++ [c] ++ "' (character)"
-    show (Float f) = show f ++ " (float)"
-    show (List ls) = show ls ++ " (list)"
-    show (DottedList xs x) = show xs ++ " . " ++ show x ++ " (dotted list)" 
+    show (Atom name) = name
+    show (String contents) = "\"" ++ contents ++ "\""
+    show (Number num) = show num
+    show (Bool True) = "#t"
+    show (Bool False) = "#f"
+    show (Character c) = "#\\" ++ [c]
+    show (Float f) = show f
+    show (List []) = "()"
+    show (List ls) = "(" ++ (showValueList ls) ++ ")"
+    show (DottedList xs x) = "(" ++ (showValueList xs) ++ " . " ++ show x ++ ")"
 
 instance Show SchemeError where
     show (NumArgs expected found) = "Expected " ++ show expected ++ " args. Found values: " ++ show found
@@ -43,6 +44,9 @@ instance Show SchemeError where
     show (Default message) = message
 
 type ThrowsError = Either SchemeError
+
+showValueList :: [Value] -> String
+showValueList xs = foldl1 (\y ys -> y ++ " " ++ ys) $ map (\x -> show x) xs
 
 parseExpr :: Parser Value
 parseExpr = try parseFloat

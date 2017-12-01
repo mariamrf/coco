@@ -2,11 +2,14 @@ module Lib where
 import REPL
 
 -- Exposed functions
-evalAndPrint :: String -> IO ()
-evalAndPrint expr = evalString expr >>= putStrLn
+evalAndPrint :: Env -> String -> IO ()
+evalAndPrint env expr = evalString env expr >>= putStrLn
+
+runOne :: String -> IO ()
+runOne expr = nullEnv >>= flip evalAndPrint expr
 
 runRepl :: IO ()
-runRepl = until_ exit (readPrompt "coco~>>> ") evalAndPrint
+runRepl = nullEnv >>= until_ exit (readPrompt "coco~>>> ") . evalAndPrint
 
 intro next = do   
                 putStrLn "    ___       ___       ___       ___   "
