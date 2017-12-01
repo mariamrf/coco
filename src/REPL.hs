@@ -25,14 +25,14 @@ isBound envRef var = readIORef envRef >>= return . maybe False (const True) . lo
 getVar :: Env -> String -> IOThrowsError Value
 getVar envRef var = do
                       env <- liftIO $ readIORef envRef
-                      maybe (throwError $ UnboundVar "Getting an unbound variable." var)
+                      maybe (throwError $ UnboundVar "Getting an unbound variable" var)
                             (liftIO . readIORef)
                             (lookup var env)
 
 setVar :: Env -> String -> Value -> IOThrowsError Value
 setVar envRef var val = do
                           env <- liftIO $ readIORef envRef
-                          maybe (throwError $ UnboundVar "Setting an unbound variable." var)
+                          maybe (throwError $ UnboundVar "Setting an unbound variable" var)
                                 (liftIO . (flip writeIORef val))
                                 (lookup var env)
                           return val
