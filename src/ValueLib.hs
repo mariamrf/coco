@@ -3,6 +3,7 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
 import Control.Monad.Except
 import Data.IORef
+import System.IO
 import Numeric
 
 -- Primitive/basic types
@@ -16,6 +17,8 @@ data Value = Atom String
              | Float Float
              | PrimitiveFunc ([Value] -> ThrowsError Value)
              | Func {params :: [String], vararg :: (Maybe String), body :: [Value], closure :: Env}
+             | IOFunc ([Value] -> IOThrowsError Value)
+             | Port Handle
 
 data SchemeError = NumArgs Integer [Value]
                    | TypeMismatch String Value
@@ -39,6 +42,8 @@ instance Show Value where
     show (Func {params=args, vararg=varargs, body=body, closure=env}) = "(lambda (" ++ (showWords (map show args)) ++ (case varargs of
                                                                                                                         Nothing -> ""
                                                                                                                         Just arg -> " . " ++ arg) ++ ") ...)"
+    show (IOFunc _) = "<IO primitive>"
+    show (Port _) = "<IO Port>"
 
 instance Show SchemeError where
     show (NumArgs expected found) = "Expected " ++ show expected ++ " args. Found values: " ++ show found
@@ -61,9 +66,6 @@ extractValue (Right val) = val
 liftThrows :: ThrowsError a -> IOThrowsError a
 liftThrows (Left err) = throwError err
 liftThrows (Right val) = return val
-
-runIOThrows :: IOThrowsError String -> IO String
-runIOThrows action = runExceptT (trapError action) >>= return . extractValue
 
 showValueList :: [Value] -> String
 showValueList xs = showWords $ map (\x -> show x) xs

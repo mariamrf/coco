@@ -2,6 +2,8 @@ module Eval where
 import ValueLib
 import Control.Monad
 import Control.Monad.Except
+import Text.ParserCombinators.Parsec hiding (spaces)
+import System.IO
 
 apply :: Value -> [Value] -> IOThrowsError Value
 apply (PrimitiveFunc func) args = liftThrows $ func args
@@ -16,6 +18,19 @@ apply (Func params varargs body closure) args =
         bindVarArgs arg env = case arg of
             Just argName -> liftIO $ bindVars env [(argName, List $ remainingArgs)]
             Nothing -> return env
+
+
+applyProc :: [Value] -> IOThrowsError Value
+applyProc [func, List args] = apply func args
+applyProc (func : args) = apply func args
+
+readExpr = readOrThrow parseExpr
+readExprList = readOrThrow (endBy parseExpr spaces)
+
+readOrThrow :: Parser a -> String -> ThrowsError a
+readOrThrow parser input = case parse parser "lisp" input of
+    Left err -> throwError $ Parser err
+    Right val -> return val
 
 primitives :: [(String, [Value] -> ThrowsError Value)]
 primitives = [("+", numericBinOp (+)),
@@ -69,6 +84,17 @@ primitives = [("+", numericBinOp (+)),
               ("string-append", stringFromStrings),
               ("string-copy", strCpy)]
 
+ioPrimitives :: [(String, [Value] -> IOThrowsError Value)]
+ioPrimitives = [("apply", applyProc),
+                ("open-input-file", makePort ReadMode),
+                ("open-output-file", makePort WriteMode),
+                ("close-input-port", closePort),
+                ("close-output-port", closePort),
+                ("read", readProc),
+                ("write", writeProc),
+                ("read-contents", readContents),
+                ("read-all", readAll)]
+
 eval :: Env -> Value -> IOThrowsError Value
 eval env val@(String _) = return val
 eval env val@(Number _) = return val
@@ -89,6 +115,7 @@ eval env (List (Atom "define" : DottedList (Atom var : params) varargs : body)) 
 eval env (List (Atom "lambda" : List params : body)) = makeNormalFunc env params body
 eval env (List (Atom "lambda" : DottedList params varargs : body)) = makeVarargs varargs env params body
 eval env (List (Atom "lambda" : varargs@(Atom _) : body)) = makeVarargs varargs env [] body
+eval env (List [Atom "load", String filename]) = load filename >>= liftM last . mapM (eval env)
 eval env (List (function : args)) = do
                                       func <- eval env function
                                       argVals <- mapM (eval env) args
@@ -277,3 +304,37 @@ strCpy :: [Value] -> ThrowsError Value
 strCpy [val@(String s)] = return val
 strCpy [notStr] = throwError $ TypeMismatch "String" notStr
 strCpy any = throwError $ NumArgs 1 any
+
+makePort :: IOMode -> [Value] -> IOThrowsError Value
+makePort mode [String filename] = liftM Port $ liftIO $ openFile filename mode
+makePort mode [notStr] = throwError $ TypeMismatch "String" notStr
+makePort _ any = throwError $ NumArgs 1 any
+
+closePort :: [Value] -> IOThrowsError Value
+closePort [Port port] = liftIO $ hClose port >> (return $ Bool True)
+closePort [_] = return $ Bool False
+closePort any = throwError $ NumArgs 1 any
+
+readProc :: [Value] -> IOThrowsError Value
+readProc [] = readProc [Port stdin]
+readProc [Port port] = (liftIO $ hGetLine port) >>= liftThrows . readExpr
+readProc [notPort] = throwError $ TypeMismatch "Port" notPort
+readProc any = throwError $ NumArgs 1 any
+
+writeProc :: [Value] -> IOThrowsError Value
+writeProc [obj] = writeProc [obj, Port stdout]
+writeProc [obj, Port port] = liftIO $ hPrint port obj >> (return $ Bool True)
+writeProc any = throwError $ NumArgs 2 any
+
+readContents :: [Value] -> IOThrowsError Value
+readContents [String filename] = liftM String $ liftIO $ readFile filename
+readContents [notStr] = throwError $ TypeMismatch "String" notStr
+readContents any = throwError $ NumArgs 1 any
+
+load :: String -> IOThrowsError [Value]
+load filename = (liftIO $ readFile filename) >>= liftThrows . readExprList
+
+readAll :: [Value] -> IOThrowsError Value
+readAll [String filename] = liftM List $ load filename
+readAll [notStr] = throwError $ TypeMismatch "String" notStr
+readAll any = throwError $ NumArgs 1 any
