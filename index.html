@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>coco</title>
+    <meta name="description" content="A simple Scheme interpreter (R5RS).">
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <link href='https://fonts.googleapis.com/css?family=Space+Mono' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="css/styles.css">  
+    <script src="https://use.fontawesome.com/7aa88de75a.js"></script>
+  </head>
+  <body>
+    <div class="container-fluid background text-center">
+      <div class="row title">
+        <div class="col-xs-12">
+          <img id="logo" src="img/logo.png">
+        </div>
+        <div class="col-xs-12">
+          <h1>coco</h1>
+          <small>v0.1.0-alpha</small>
+        </div>
+      </div>
+      <div class="row about">
+        <div class="col-xs-12">
+          A simple Scheme interpreter that implements a subset of <a href="http://schemers.org/Documents/Standards/R5RS/HTML/">R5RS</a>. Built in Haskell as an exercise project. <a href="https://en.wikibooks.org/wiki/Write_Yourself_a_Scheme_in_48_Hours">Heavily refrences this book</a>. Runs as an interactive interpreter or takes a .scm file as an argument.
+        </div>
+      </div>
+      <div class="row code">
+        <div class="col-xs-12">
+          <span><span class="beg">$</span> make run <span class="comment"># (interactive)</span></span>
+          <br>
+          <span><span class="beg">$</span> stack exec coco-exe -- FILENAME ARG1 ARG2 ARG3 <span class="comment"># (run file w/ args)</span></span>
+        </div>
+      </div>
+      <div class="row links">
+        <div class="col-xs-12 col-md-6 text-left">
+          <a target="_blank" href="https://github.com/mariamrf/coco"><button class="def-btn"><i class="fa fa-github"></i>Github Repo</button></a>
+        </div>
+        <div class="col-xs-12 col-md-6 text-right">
+          <a target="_blank" href="https://asciinema.org/a/8Lu8xWXFBUOKVR2NszrlLnWhC"><button class="def-btn"><i class="fa fa-play-circle"></i>Demo</button></a>
+        </div>
+      </div>
+      <div class="row attr">
+        <div class="col-xs-12">
+          Made with <i class="fa fa-heart"></i> by <a target="_blank" href="http://maarouf.me">Mariam Maarouf</a>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <!--script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script-->
+    <script src="js/script.js"></script>
+  </body>
+</html>
